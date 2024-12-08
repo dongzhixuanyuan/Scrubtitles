@@ -4,11 +4,20 @@ import os
 import numpy as np
 import re 
 import time
+import sys
+try:
+    # pip uninstall moviepy
+    # pip install moviepy==1.0.3
+    from moviepy.editor import VideoFileClip
+    print("MoviePy 已成功安装")
+except ImportError:
+    print("MoviePy 未安装，请运行: pip install moviepy")
+    sys.exit(1)
 
 
 #This is the folder the video will be in, and a subfolder for the temporary processing files.
-dir = 'C:/Videos/' #Place video directory here
-video_name = 'input.mp4' #Place video name here
+dir = '/Users/dongliu/android/code/others/video_subtitles_remove/Scrubtitles/videos_src/' #Place video directory here
+video_name = 'changcheng_bj.mp4' #Place video name here
 
 #Sorts alphanumerically with frame formatting
 def sortedproper( l ):    
@@ -69,8 +78,13 @@ while (frame_counter < vid.get(cv2.CAP_PROP_FRAME_COUNT)):
 
 #Move back to original video directory and begin saving frames into one video
 os.chdir(dir)
-video = cv2.VideoWriter('output.avi', 0, int(vid.get(cv2.CAP_PROP_FPS)), (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)), int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Changed from 0 to mp4v codec
+temp_output = 'temp_output.mp4'  # Temporary file for video without audio
+video = cv2.VideoWriter(temp_output, fourcc, int(vid.get(cv2.CAP_PROP_FPS)), (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)), int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+
 images = [img for img in os.listdir(os.path.join(dir,'Temp')) if img.endswith(".jpg")]
+images = [os.path.join(dir, 'Temp', img) for img in os.listdir(os.path.join(dir,'Temp')) if img.endswith(".jpg")]
+
 images = sortedproper(images)
 for image in images:
     print(image)
@@ -79,4 +93,17 @@ for image in images:
 #Cleanup and print execution time
 video.release()
 vid.release()
+
+# Add audio from original video to the new video
+original = VideoFileClip(os.path.join(dir, video_name))
+new_video = VideoFileClip(temp_output)
+final_video = new_video.set_audio(original.audio)
+final_video.write_videofile('output.mp4', codec='libx264', audio_codec='aac')
+
+# Clean up temporary files
+os.remove(temp_output)
+original.close()
+new_video.close()
+final_video.close()
+
 print("--- %s seconds ---" % (time.time() - start_time))
